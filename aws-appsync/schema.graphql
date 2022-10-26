@@ -1,0 +1,79 @@
+schema {
+  query: Query
+  mutation: Mutation
+}
+
+type Query {
+  getBookById(bookId: ID!): Book!
+  listBooks(limit: Int!, lastEvaluatedKey: ID): BooksPage!
+  myOrders(limit: Int!, lastEvaluatedKey: ID): OrderItemsPage! @aws_auth(cognito_groups: ["CUSTOMER"])
+  allOrders(limit: Int!, lastEvaluatedKey: ID): OrderItemsPage! @aws_auth(cognito_groups: ["ADMIN"])
+  getOrderById(orderId: ID!): OrderItem!
+  getLoggedInUser(customerId: ID!): AWSJSON!
+}
+
+type OrderItemsPage {
+  orders: [OrderItem]
+  lastEvaluatedKey: ID
+}
+
+type OrderItem {
+  orderId: ID!
+  userId: ID!
+  orderDetails: [OrderObject]!
+  createdAt: AWSDateTime!
+}
+
+type OrderObject {
+  bookId: ID!
+  quantity: Int!
+}
+
+type BooksPage {
+  books: [Book]
+  lastEvaluatedKey: ID
+}
+
+type Book {
+  bookId: ID!
+  title: String!
+  description: String!
+  imageUrl: AWSURL
+  author: String!
+  price: Float!
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type Mutation {
+  createBook(newBook: BookInput): Book! @aws_auth(cognito_groups: ["ADMIN"])
+  updateBook(updateBook: UpdateBookInput): Book! @aws_auth(cognito_groups: ["ADMIN"])
+  deleteBook(bookId: ID!): String! @aws_auth(cognito_groups: ["ADMIN"])
+  createOrder(newOrder: OrderInput): String! @aws_auth(cognito_groups: ["CUSTOMER"])
+}
+
+input OrderInput {
+  items: [OrderItemInput]!
+}
+
+input OrderItemInput {
+  bookId: ID!
+  quantity: Int!
+}
+
+input BookInput {
+  title: String!
+  description: String!
+  imageUrl: AWSURL
+  author: String!
+  price: Float!
+}
+
+input UpdateBookInput {
+  bookId: ID!
+  title: String!
+  description: String!
+  imageUrl: AWSURL
+  author: String!
+  price: Float!
+}

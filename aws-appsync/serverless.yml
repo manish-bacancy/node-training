@@ -1,0 +1,282 @@
+org: manishrathod769
+app: aws-appsync
+service: aws-appsync
+
+frameworkVersion: "3"
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  region: "us-east-1"
+
+plugins:
+  - serverless-appsync-plugin
+
+layers: # Define layers
+  awsSdkUuid:
+    path: Layers/awsSdkUuid
+    description: "aws-sdk and uuid package"
+    compatibleRuntimes:
+      - nodejs12.x
+      - nodejs14.x
+    package:
+      include:
+        - ./nodejs/node_modules/**
+
+package:
+  individually: true
+  patterns:
+    - '!./**'
+
+custom:
+  BooksTable: "books-table"
+  OrderTable: "orders-table5"
+  UserPool: "book-store-user"
+  UserPoolClient: "Web"
+  UserAdminGroup: "ADMIN"
+  UserCustomerGroup: "CUSTOMER"
+  AdminRoleName: "book-store-admin-role"
+  CustomerRoleName: "book-store-customer-role"
+  AdminPolicyName: "book-store-admin-group-policy"
+  CustomerPolicyName: "book-store-customer-group-policy"
+  AppSyncName: "book-store-api"
+  appSync:
+    schema: schema.graphql
+    name: ${self:custom.AppSyncName}
+    authenticationType: AMAZON_COGNITO_USER_POOLS
+    userPoolConfig:
+      awsRegion: "us-east-1"
+      defaultAction: "ALLOW"
+      userPoolId: !Ref CognitoUserPool
+    mappingTemplatesLocation: mapping-templates
+    mappingTemplates:
+      # - dataSource: createBook
+      #   type: Mutation
+      #   field: createBook
+      #   request: default.request.vtl
+      #   response: default.response.vtl
+      - dataSource: bookTableDataSource
+        type: Mutation
+        field: createBook
+      # - dataSource: getBookById
+      #   type: Query
+      #   field: getBookById
+      #   request: default.request.vtl
+      #   response: default.response.vtl
+      - dataSource: bookTableDataSource
+        type: Query
+        field: getBookById
+      - dataSource: deleteBook
+        type: Mutation
+        field: deleteBook
+        request: default.request.vtl
+        response: default.response.vtl
+      - dataSource: updateBook
+        type: Mutation
+        field: updateBook
+        request: default.request.vtl
+        response: default.response.vtl
+      - dataSource: listBooks
+        type: Query
+        field: listBooks
+        request: default.request.vtl
+        response: default.response.vtl
+      - dataSource: createOrder
+        type: Mutation
+        field: createOrder
+        request: false
+        response: default.response.vtl
+      - dataSource: getOrderById
+        type: Query
+        field: getOrderById
+        request: default.request.vtl
+        response: default.response.vtl
+      - dataSource: myOrders
+        type: Query
+        field: myOrders
+        request: false
+        response: default.response.vtl
+      - dataSource: allOrders
+        type: Query
+        field: allOrders
+        request: default.request.vtl
+        response: default.response.vtl
+      - dataSource: getLoggedInUser
+        type: Query
+        field: getLoggedInUser
+        request: false
+        response: false
+      
+    dataSources:
+      - type: AMAZON_DYNAMODB
+        name: bookTableDataSource
+        description: "books-table dybanodb data sources"
+        config:
+          tableName: !Ref BooksTable
+      - type: AWS_LAMBDA
+        name: createBook
+        description: "Lambda function to create book"
+        config:
+          functionName: createBook
+      - type: AWS_LAMBDA
+        name: getBookById
+        description: "Lambda function to get book details"
+        config:
+          functionName: getBookById
+      - type: AWS_LAMBDA
+        name: deleteBook
+        description: "Lambda function to delete book details"
+        config:
+          functionName: deleteBook
+      - type: AWS_LAMBDA
+        name: updateBook
+        description: "Lambda function to update book details"
+        config:
+          functionName: updateBook
+      - type: AWS_LAMBDA
+        name: listBooks
+        description: "Lambda function to list books"
+        config:
+          functionName: listBooks
+      - type: AWS_LAMBDA
+        name: createOrder
+        description: "Lambda function to order books"
+        config:
+          functionName: createOrder
+      - type: AWS_LAMBDA
+        name: getOrderById
+        description: "Lambda function to get order by id"
+        config:
+          functionName: getOrderById
+      - type: AWS_LAMBDA
+        name: myOrders
+        description: "Lambda function to get users past orders"
+        config:
+          functionName: myOrders
+      - type: AWS_LAMBDA
+        name: allOrders
+        description: "Lambda function to get all orders for admin"
+        config:
+          functionName: allOrders
+      - type: AWS_LAMBDA
+        name: getLoggedInUser
+        description: "Lambda function to get details of logged in customer"
+        config:
+          functionName: getLoggedInUser
+
+functions:
+
+  createBook:
+    handler: Lambda/createBook.handler
+    package:
+      include:
+        - ./Lambda/createBook.js
+    environment:
+      BOOK_TABLE: ${self:custom.BooksTable}
+    layers: # Attach Layers
+      - { Ref: AwsSdkUuidLambdaLayer }
+    role: CognitoAdminIAMRole
+
+  getBookById:
+    handler: Lambda/getBookById.handler
+    package:
+      include:
+        - ./Lambda/getBookById.js
+    environment:
+      BOOK_TABLE: ${self:custom.BooksTable}
+    layers:
+      - { Ref: AwsSdkUuidLambdaLayer }
+    role: CognitoAdminIAMRole
+
+  deleteBook:
+    handler: Lambda/deleteBook.handler
+    package:
+      include:
+        - ./Lambda/deleteBook.js
+    environment:
+      BOOK_TABLE: ${self:custom.BooksTable}
+    layers:
+      - { Ref: AwsSdkUuidLambdaLayer }
+    role: CognitoAdminIAMRole
+
+  updateBook:
+    handler: Lambda/updateBook.handler
+    package:
+      include:
+        - ./Lambda/updateBook.js
+    environment:
+      BOOK_TABLE: ${self:custom.BooksTable}
+    layers:
+      - { Ref: AwsSdkUuidLambdaLayer }
+    role: CognitoAdminIAMRole
+
+  listBooks:
+    handler: Lambda/listBooks.handler
+    package:
+      include:
+        - ./Lambda/listBooks.js
+    environment:
+      BOOK_TABLE: ${self:custom.BooksTable}
+    layers:
+      - { Ref: AwsSdkUuidLambdaLayer }
+    role: CognitoCustomerIAMRole
+
+  createOrder:
+    handler: Lambda/createOrder.handler
+    package:
+      include:
+        - ./Lambda/createOrder.js
+    environment:
+      BOOK_TABLE: ${self:custom.BooksTable}
+      ORDER_TABLE: ${self:custom.OrderTable}
+    layers:
+      - { Ref: AwsSdkUuidLambdaLayer }
+    role: CognitoCustomerIAMRole
+
+  getOrderById:
+    handler: Lambda/getOrderById.handler
+    package:
+      include:
+        - ./Lambda/getOrderById.js
+    environment:
+      ORDER_TABLE: ${self:custom.OrderTable}
+    layers:
+      - { Ref: AwsSdkUuidLambdaLayer }
+    role: CognitoCustomerIAMRole
+
+  myOrders:
+    handler: Lambda/myOrders.handler
+    package:
+      include:
+        - ./Lambda/myOrders.js
+    environment:
+      ORDER_TABLE: ${self:custom.OrderTable}
+    layers:
+      - { Ref: AwsSdkUuidLambdaLayer }
+    role: CognitoCustomerIAMRole
+
+  allOrders:
+    handler: Lambda/allOrders.handler
+    package:
+      include:
+        - ./Lambda/allOrders.js
+    environment:
+      ORDER_TABLE: ${self:custom.OrderTable}
+    layers:
+      - { Ref: AwsSdkUuidLambdaLayer }
+    role: CognitoAdminIAMRole
+
+  getLoggedInUser:
+    handler: Lambda/getLoggedInUser.handler
+    package:
+      include:
+        - ./Lambda/getLoggedInUser.js
+    environment:
+      USER_POOL_ID: { Ref: CognitoUserPool }
+    layers:
+      - { Ref: AwsSdkUuidLambdaLayer }
+    role: CognitoCustomerIAMRole
+
+
+resources:
+  Resources: ${file(resources.yml)}

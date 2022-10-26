@@ -1,0 +1,103 @@
+org: manishrathod769
+app: aws-cognito
+service: aws-cognito
+
+frameworkVersion: '3'
+
+plugins:
+  - serverless-offline
+
+custom:
+  userPoolName: 'aws-cognito-user-pool'
+  clientUserPoolName: 'aws-cognito-cliet-user-pool'
+  # serverless-offline:
+    # ignoreJWTSignature: true
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - cognito-idp:AdminInitiateAuth
+            - cognito-idp:AdminCreateUser
+            - cognito-idp:AdminSetUserPassword
+          Resource: "*"
+  httpApi:
+    authorizers:
+      customAuthorizer:
+        type: request
+        functionName: authorizerFunc
+        
+  # environment:
+    # user_pool_id: { Ref: UserPool }
+    # client_id: { Ref: UserClientPool }
+
+functions:
+  registerUser:
+    handler: src/controller/users/usersController.registerUser
+    events:
+      - httpApi:
+          path: /users
+          method: post
+          # cors: true
+  
+  loginUser:
+    handler: src/controller/users/usersController.loginUser
+    events:
+      - httpApi:
+          path: /login
+          method: post
+          # cors: true
+  
+  # protectedRoute:
+  #   handler: src/controller/users/usersController.protectedRoute
+  #   events:
+  #     - httpApi:
+  #         path: /protected
+  #         method: get
+  #         # cors: true
+  #         authorizer:
+  #           name: customAuthorizer
+            # type: COGNITO_USER_POOLS
+            # arn:
+            #   Fn::GetAtt:
+            #     - UserPool
+            #     - Arn
+            # claims:
+            #   - email
+
+  # authorizerFunc:
+  #   handler: src/authorizer/verifyTokenAuthorizer
+
+resources:
+  Resources:
+    UserPool:
+      Type: AWS::Cognito::UserPool
+      Properties:
+        UserPoolName: ${self:custom.userPoolName}
+        Schema:
+            - Name: email
+              AttributeDataType: String
+              Required: true
+              Mutable: true
+        Policies:
+          PasswordPolicy:
+            MinimumLength: 8
+            RequireUppercase: true
+            RequireLowercase: true
+            RequireNumbers: true
+            RequireSymbols: true
+        AutoVerifiedAttributes: ['email']
+    UserClientPool:
+      Type: AWS::Cognito::UserPoolClient
+      Properties: 
+        ClientName: ${self:custom.clientUserPoolName}
+        GenerateSecret: false
+        UserPoolId: {Ref: UserPool}
+        AccessTokenValidity: 5
+        IdTokenValidity: 5
+        ExplicitAuthFlows:
+          - "ADMIN_NO_SRP_AUTH"

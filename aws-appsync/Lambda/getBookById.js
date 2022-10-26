@@ -1,0 +1,31 @@
+const AWS = require('aws-sdk');
+
+const dynamoDbClient = new AWS.DynamoDB.DocumentClient();
+const bookTable = process.env.BOOK_TABLE;
+
+const handler = async (event) => {
+  const { bookId } = event;
+  const params = {
+    TableName: bookTable,
+    Key: {
+      bookId,
+    },
+  };
+
+  try {
+    const { Item } = await dynamoDbClient.get(params).promise();
+    if (!Item) {
+      throw new Error(`Book does not exist with bookId: '${bookId}' !!!`);
+    }
+    return {
+      statusCode: 200,
+      body: Item,
+    }
+  } catch (error) {
+    throw new Error(error);
+  }
+};
+
+module.exports = {
+  handler,
+};
